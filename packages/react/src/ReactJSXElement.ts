@@ -23,26 +23,26 @@ import { ElementType, Key, Ref, Props, ReactElementType } from 'shared/ReactType
 */
 
 export const jsx = (type: ElementType, config: any, maybeKey: any): ReactElementType => {
-	const props: Props = {};
-	let key: Key = null;
-	let ref: Ref = null;
+  const props: Props = {};
+  let key: Key = null;
+  let ref: Ref = null;
 
-	if (maybeKey !== undefined) {
-		key = '' + maybeKey;
-	}
+  if (maybeKey !== undefined) {
+    key = '' + maybeKey;
+  }
 
-	for (const prop in config) {
-		const val = config[prop];
-		if (val !== undefined && prop === 'ref') {
-			ref = val;
-			continue;
-		}
-		if ({}.hasOwnProperty.call(config, prop)) {
-			props[prop] = val;
-		}
-	}
+  for (const prop in config) {
+    const val = config[prop];
+    if (val !== undefined && prop === 'ref') {
+      ref = val;
+      continue;
+    }
+    if ({}.hasOwnProperty.call(config, prop)) {
+      props[prop] = val;
+    }
+  }
 
-	return ReactElement(type, key, ref, props);
+  return ReactElement(type, key, ref, props);
 };
 
 export const jsxDEV = jsx;

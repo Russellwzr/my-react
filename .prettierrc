@@ -1,16 +1,15 @@
 {
-	"printWidth": 100,
-	"tabWidth": 2,
-	"useTabs": true,
-	"singleQuote": true,
-	"semi": true,
-	"trailingComma": "all",
-	"bracketSpacing": true,
-	"overrides": [
-		{
-			"files": ".prettierrc",
-			"options": { "parser": "json" }
-		}
-	],
-	"endOfLine": "auto"
+  "printWidth": 100,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "semi": true,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "overrides": [
+    {
+      "files": ".prettierrc",
+      "options": { "parser": "json" }
+    }
+  ],
+  "endOfLine": "auto"
 }
