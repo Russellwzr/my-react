@@ -2,7 +2,8 @@
     "env": {
         "browser": true,
         "es2021": true,
-        "node": true
+        "node": true,
+        "jest": true
     },
     "extends": [
         "eslint:recommended",
@@ -23,6 +24,7 @@
         "prettier/prettier": "error",
         "no-case-declarations": "off",
         "no-constant-condition": "off",
-        "@typescript-eslint/ban-ts-comment": "off"
+        "@typescript-eslint/ban-ts-comment": "off",
+        "no-unused-vars": "off"
     }
 }
