@@ -16,3 +16,4 @@ export const version = '0.0.1';
 export const createElement = createElementFn;
 export const jsx = jsxFn;
 export const isValidElement = isValidElementFn;
+export { REACT_FRAGMENT_TYPE as Fragment } from 'shared/ReactSymbols';

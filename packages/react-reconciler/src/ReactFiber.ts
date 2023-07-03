@@ -1,5 +1,5 @@
 import { Props, Key, Ref, ReactElementType } from 'shared/ReactTypes';
-import { FunctionComponent, HostComponent, WorkTag } from './ReactWorkTags';
+import { FunctionComponent, HostComponent, WorkTag, Fragment } from './ReactWorkTags';
 import { Flags, NoFlags } from './ReactFiberFlags';
 import { Container } from 'hostConfig';
 
@@ -28,7 +28,7 @@ export class FiberNode {
     // Fiber对应组件的类型
     this.tag = tag;
     // key属性
-    this.key = key;
+    this.key = key || null;
     // Fiber对应的真实DOM节点
     this.stateNode = null;
     // 对于 FunctionComponent，指函数本身，对于ClassComponent，指class，对于HostComponent，指DOM节点tagName
@@ -107,9 +107,14 @@ export function createFiberFromElement(element: ReactElementType): FiberNode {
     // <div/> type: 'div'
     fiberTag = HostComponent;
   } else if (typeof type !== 'function' && __DEV__) {
-    console.warn('为定义的type类型', element);
+    console.warn('未定义的type类型', element);
   }
   const fiber = new FiberNode(fiberTag, props, key);
   fiber.type = type;
+  return fiber;
+}
+
+export function createFiberFromFragment(elements: any[], key: Key): FiberNode {
+  const fiber = new FiberNode(Fragment, elements, key);
   return fiber;
 }
