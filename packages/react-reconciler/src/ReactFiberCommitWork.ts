@@ -8,7 +8,7 @@ import {
 } from 'hostConfig';
 import { FiberNode, FiberRootNode } from './ReactFiber';
 import { MutationMask, NoFlags, Placement, ChildDeletion, Update } from './ReactFiberFlags';
-import { HostComponent, HostRoot, HostText, FunctionComponent } from './ReactWorkTags';
+import { HostComponent, HostRoot, HostText, FunctionComponent, Fragment } from './ReactWorkTags';
 
 let nextEffect: FiberNode | null = null;
 
@@ -113,61 +113,70 @@ function getHostSibling(fiber: FiberNode) {
   删除Fragment后，子树的根Host节点可能存在多个，如下：
   <div>
     <>
-      <p>xxx</p>
-      <p>yyy</p>
+      <li>item-1</li>
+      <>
+        <li>item-2</li>
+        <>
+          <li>item-3</li>
+          <li>item-4</li>
+        </>
+        <li>item-5</li>
+      </>
+      <li>item-6</li>
     </>
   </div>
 */
-function recordHostChildrenToDelete(childrenToDelete: FiberNode[], unmountFiber: FiberNode) {
-  // 1. 找到第一个root host节点
-  const lastOne =
-    childrenToDelete.length > 0 ? childrenToDelete[childrenToDelete.length - 1] : undefined;
-
-  if (!lastOne) {
-    childrenToDelete.push(unmountFiber);
-  } else {
-    // 2. 每找到一个 host节点，判断下这个节点是不是 1 找到那个节点的兄弟节点
-    let node = lastOne.sibling;
-    while (node !== null) {
-      if (unmountFiber === node) {
-        childrenToDelete.push(unmountFiber);
-      }
-      node = node.sibling;
+function recordHostChildrenToDelete(beginNode: FiberNode): FiberNode[] {
+  if (beginNode.tag !== Fragment) return [beginNode];
+  const hostChildrenToDelete: FiberNode[] = [];
+  const processQueue: FiberNode[] = [beginNode];
+  // BFS标记各层Fragment下需要删除的元素
+  while (processQueue.length) {
+    const node = processQueue.shift();
+    if (node && node.tag !== Fragment) {
+      hostChildrenToDelete.push(node);
+      continue;
+    }
+    let childNode = node?.child;
+    while (childNode) {
+      processQueue.push(childNode);
+      childNode = childNode.sibling;
     }
   }
+  return hostChildrenToDelete;
 }
 
 function commitDeletion(childToDelete: FiberNode) {
-  const rootChildrenToDelete: FiberNode[] = [];
-  // 递归子树
-  commitNestedComponent(childToDelete, (unmountFiber) => {
-    switch (unmountFiber.tag) {
-      case HostComponent:
-        recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);
-        // TODO 解绑ref
-        return;
-      case HostText:
-        recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);
-        return;
-      case FunctionComponent:
-        // TODO useEffect unmount 、解绑ref
-        return;
-      default:
-        if (__DEV__) {
-          console.warn('未处理的unmount类型', unmountFiber);
-        }
-    }
-  });
+  const hostChildrenToDelete: FiberNode[] = recordHostChildrenToDelete(childToDelete);
 
-  // 移除rootHostComponent的DOM
-  if (rootChildrenToDelete.length) {
-    const hostParent = getHostParent(childToDelete);
+  for (let i = 0; i < hostChildrenToDelete.length; i++) {
+    commitNestedComponent(hostChildrenToDelete[i], (unmountFiber) => {
+      switch (unmountFiber.tag) {
+        case HostComponent:
+          // TODO 解绑ref
+          return;
+        case HostText:
+          return;
+        case FunctionComponent:
+          // TODO useEffect unmount 、解绑ref
+          return;
+        default:
+          if (__DEV__) {
+            console.warn('未处理的unmount类型', unmountFiber);
+          }
+      }
+    });
+  }
+
+  if (hostChildrenToDelete.length) {
+    const hostParent = getHostParent(childToDelete) as Container;
     if (hostParent !== null) {
-      rootChildrenToDelete.forEach((node) => {
-        removeChild(node.stateNode, hostParent);
+      hostChildrenToDelete.forEach((hostChild) => {
+        removeChild(hostChild.stateNode, hostParent);
       });
     }
   }
+
   childToDelete.return = null;
   childToDelete.child = null;
 }
@@ -224,7 +233,6 @@ function insertOrAppendPlacementNodeIntoContainer(
   hostParent: Container,
   before?: Instance,
 ) {
-  //debugger;
   // fiber host
   if (finishedWork.tag === HostComponent || finishedWork.tag === HostText) {
     if (before) {
@@ -236,11 +244,11 @@ function insertOrAppendPlacementNodeIntoContainer(
   }
   const child = finishedWork.child;
   if (child !== null) {
-    insertOrAppendPlacementNodeIntoContainer(child, hostParent);
+    insertOrAppendPlacementNodeIntoContainer(child, hostParent, before);
     let sibling = child.sibling;
 
     while (sibling !== null) {
-      insertOrAppendPlacementNodeIntoContainer(sibling, hostParent);
+      insertOrAppendPlacementNodeIntoContainer(sibling, hostParent, before);
       sibling = sibling.sibling;
     }
   }
