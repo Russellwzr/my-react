@@ -126,14 +126,19 @@ function getHostSibling(fiber: FiberNode) {
     </>
   </div>
 */
+
+function isHostTypeFiberNode(fiber: FiberNode) {
+  const tag = fiber.tag;
+  return [HostComponent, HostRoot, HostText].includes(tag);
+}
+
 function recordHostChildrenToDelete(beginNode: FiberNode): FiberNode[] {
-  if (beginNode.tag !== Fragment) return [beginNode];
+  if (isHostTypeFiberNode(beginNode)) return [beginNode];
   const hostChildrenToDelete: FiberNode[] = [];
   const processQueue: FiberNode[] = [beginNode];
-  // BFS标记各层Fragment下需要删除的元素
   while (processQueue.length) {
     const node = processQueue.shift();
-    if (node && node.tag !== Fragment) {
+    if (node && isHostTypeFiberNode(node)) {
       hostChildrenToDelete.push(node);
       continue;
     }
@@ -149,24 +154,22 @@ function recordHostChildrenToDelete(beginNode: FiberNode): FiberNode[] {
 function commitDeletion(childToDelete: FiberNode) {
   const hostChildrenToDelete: FiberNode[] = recordHostChildrenToDelete(childToDelete);
 
-  for (let i = 0; i < hostChildrenToDelete.length; i++) {
-    commitNestedComponent(hostChildrenToDelete[i], (unmountFiber) => {
-      switch (unmountFiber.tag) {
-        case HostComponent:
-          // TODO 解绑ref
-          return;
-        case HostText:
-          return;
-        case FunctionComponent:
-          // TODO useEffect unmount 、解绑ref
-          return;
-        default:
-          if (__DEV__) {
-            console.warn('未处理的unmount类型', unmountFiber);
-          }
-      }
-    });
-  }
+  commitNestedComponent(childToDelete, (unmountFiber) => {
+    switch (unmountFiber.tag) {
+      case HostComponent:
+        // TODO 解绑ref
+        return;
+      case HostText:
+        return;
+      case FunctionComponent:
+        // TODO useEffect unmount 、解绑ref
+        return;
+      default:
+        if (__DEV__) {
+          console.warn('未处理的unmount类型', unmountFiber);
+        }
+    }
+  });
 
   if (hostChildrenToDelete.length) {
     const hostParent = getHostParent(childToDelete) as Container;
