@@ -1,6 +1,7 @@
 import { Container } from 'hostConfig';
 import { ReactElementType } from 'shared/ReactTypes';
 import { FiberNode, FiberRootNode } from './ReactFiber';
+import { requestUpdateLane } from './ReactFiberLanes';
 import {
   createUpdate,
   createUpdateQueue,
@@ -19,8 +20,9 @@ export function createContainer(container: Container) {
 
 export function updateContainer(element: ReactElementType | null, root: FiberRootNode) {
   const hostRootFiber = root.current;
-  const update = createUpdate<ReactElementType | null>(element);
+  const lane = requestUpdateLane();
+  const update = createUpdate<ReactElementType | null>(element, lane);
   enqueueUpdate(hostRootFiber.updateQueue as UpdateQueue<ReactElementType | null>, update);
-  scheduleUpdateOnFiber(hostRootFiber);
+  scheduleUpdateOnFiber(hostRootFiber, lane);
   return element;
 }
