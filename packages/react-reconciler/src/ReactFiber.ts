@@ -4,6 +4,7 @@ import { Flags, NoFlags } from './ReactFiberFlags';
 import { Container } from 'hostConfig';
 import { Lane, Lanes, NoLane, NoLanes } from './ReactFiberLanes';
 import { Effect } from './ReactFiberHooks';
+import { CallbackNode } from 'scheduler';
 
 export class FiberNode {
   type: any;
@@ -78,12 +79,17 @@ export class FiberRootNode {
   // 本次更新消费的lane
   finishedLane: Lane;
   pendingPassiveEffects: PendingPassiveEffects;
+
+  callbackNode: CallbackNode | null;
+  callbackPriority: Lane;
   constructor(container: Container, hostRootFiber: FiberNode) {
     this.container = container;
     this.current = hostRootFiber;
     this.finishedWork = null;
     this.pendingLanes = NoLanes;
     this.finishedLane = NoLane;
+    this.callbackNode = null;
+    this.callbackPriority = NoLane;
     this.pendingPassiveEffects = {
       unmount: [],
       update: [],

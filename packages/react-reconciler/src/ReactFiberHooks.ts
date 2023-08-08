@@ -6,6 +6,7 @@ import { Lane, NoLane, requestUpdateLane } from './ReactFiberLanes';
 import { Flags, PassiveEffect } from './ReactFiberFlags';
 import { HookHasEffect, Passive } from './ReactHookEffectTags';
 import {
+  Update,
   createUpdate,
   createUpdateQueue,
   enqueueUpdate,
@@ -18,6 +19,8 @@ interface Hook {
   memoizedState: any;
   updateQueue: unknown;
   next: Hook | null;
+  baseState: any;
+  baseQueue: Update<any> | null;
 }
 
 export interface Effect {
@@ -175,12 +178,33 @@ function updateState<State>(): [State, Dispatch<State>] {
 
   // 计算新state的逻辑
   const queue = hook.updateQueue as UpdateQueue<State>;
+  const baseState = hook.baseState;
+  const current = currentHook as Hook;
+  let baseQueue = current.baseQueue;
   const pending = queue.shared.pending;
 
   if (pending !== null) {
-    const { memoizedState } = processUpdateQueue(hook.memoizedState, pending, renderLane);
-    hook.memoizedState = memoizedState;
+    // pending baseQueue update保存在current中
+    if (baseQueue !== null) {
+      const baseFirst = baseQueue.next;
+      const pendingFirst = pending.next;
+      baseQueue.next = pendingFirst;
+      pending.next = baseFirst;
+    }
+    baseQueue = pending;
+    current.baseQueue = pending;
     queue.shared.pending = null;
+
+    if (baseQueue !== null) {
+      const {
+        memoizedState,
+        baseQueue: newBaseQueue,
+        baseState: newBaseState,
+      } = processUpdateQueue(baseState, baseQueue, renderLane);
+      hook.memoizedState = memoizedState;
+      hook.baseState = newBaseState;
+      hook.baseQueue = newBaseQueue;
+    }
   }
 
   return [hook.memoizedState, queue.dispatch as Dispatch<State>];
@@ -212,6 +236,8 @@ function updateWorkInProgresHook(): Hook {
     memoizedState: currentHook.memoizedState,
     updateQueue: currentHook.updateQueue,
     next: null,
+    baseQueue: currentHook.baseQueue,
+    baseState: currentHook.baseState,
   };
   if (workInProgressHook === null) {
     // mount时 第一个hook
@@ -264,6 +290,8 @@ function mountWorkInProgresHook(): Hook {
     memoizedState: null,
     updateQueue: null,
     next: null,
+    baseQueue: null,
+    baseState: null,
   };
   if (workInProgressHook === null) {
     // mount时 第一个hook
