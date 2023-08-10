@@ -2,6 +2,7 @@ import { scheduleMicroTask } from 'hostConfig';
 import { beginWork } from './ReactFiberBeginWork';
 import {
   commitMutationEffects,
+  commitLayoutEffects,
   commitHookEffectListCreate,
   commitHookEffectListDestroy,
   commitHookEffectListUnmount,
@@ -269,6 +270,7 @@ function commitRoot(root: FiberRootNode) {
     root.current = finishedWork;
 
     // layout
+    commitLayoutEffects(finishedWork, root);
   } else {
     root.current = finishedWork;
   }

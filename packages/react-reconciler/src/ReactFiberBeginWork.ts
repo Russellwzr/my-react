@@ -5,6 +5,7 @@ import { renderWithHooks } from './ReactFiberHooks';
 import { processUpdateQueue, UpdateQueue } from './ReactFiberUpdateQueue';
 import { FunctionComponent, HostComponent, HostRoot, HostText, Fragment } from './ReactWorkTags';
 import { Lane } from './ReactFiberLanes';
+import { Ref } from './ReactFiberFlags';
 
 export const beginWork = (wip: FiberNode, renderLane: Lane) => {
   // 比较，返回子fiberNode
@@ -53,9 +54,17 @@ function updateHostRoot(wip: FiberNode, renderLane: Lane) {
   return wip.child;
 }
 
+function markRef(current: FiberNode | null, workInProgress: FiberNode) {
+  const ref = workInProgress.ref;
+  if ((current === null && ref !== null) || (current !== null && current.ref !== ref)) {
+    workInProgress.flags |= Ref;
+  }
+}
+
 function updateHostComponent(wip: FiberNode) {
   const nextProps = wip.pendingProps;
   const nextChildren = nextProps.children;
+  markRef(wip.alternate, wip);
   reconcileChildren(wip, nextChildren);
   return wip.child;
 }
