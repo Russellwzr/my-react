@@ -3,9 +3,17 @@ import { mountChildFibers, reconcileChildFibers } from './ReactChildFiber';
 import { FiberNode } from './ReactFiber';
 import { renderWithHooks } from './ReactFiberHooks';
 import { processUpdateQueue, UpdateQueue } from './ReactFiberUpdateQueue';
-import { FunctionComponent, HostComponent, HostRoot, HostText, Fragment } from './ReactWorkTags';
+import {
+  FunctionComponent,
+  HostComponent,
+  HostRoot,
+  HostText,
+  Fragment,
+  ContextProvider,
+} from './ReactWorkTags';
 import { Lane } from './ReactFiberLanes';
 import { Ref } from './ReactFiberFlags';
+import { pushProvider } from './ReactFiberContext';
 
 export const beginWork = (wip: FiberNode, renderLane: Lane) => {
   // 比较，返回子fiberNode
@@ -20,6 +28,8 @@ export const beginWork = (wip: FiberNode, renderLane: Lane) => {
       return updateFunctionComponent(wip, renderLane);
     case Fragment:
       return updateFragment(wip);
+    case ContextProvider:
+      return updateContextProvider(wip);
     default:
       if (__DEV__) {
         console.warn('beginWork未实现的类型');
@@ -28,6 +38,30 @@ export const beginWork = (wip: FiberNode, renderLane: Lane) => {
   }
   return null;
 };
+
+function updateContextProvider(wip: FiberNode) {
+  const providerType = wip.type;
+  const context = providerType._context;
+  const newProps = wip.pendingProps;
+  const newValue = newProps.value;
+
+  if (__DEV__ && !('value' in newProps)) {
+    console.warn('<Context.Provider>需要传递value props');
+  }
+
+  /**
+   * 在bailout策略中，当shouldComponentUpdate为false时，如何感知子孙组件中有Context Consumer：
+   * 1. context.value变化
+   * 2. 从Provider向下DFS，寻找消费了当前变化的contexxt的consumer
+   * 3. 如果找到consumer，从consumer向上便遍历到Provider
+   * 4. 标记沿途组件存在更新
+   */
+
+  pushProvider(context, newValue);
+  const nextChildren = newProps.children;
+  reconcileChildren(wip, nextChildren);
+  return wip.child;
+}
 
 function updateFunctionComponent(wip: FiberNode, renderLane: Lane) {
   const nextChildren = renderWithHooks(wip, renderLane);

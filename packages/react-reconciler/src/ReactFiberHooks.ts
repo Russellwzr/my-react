@@ -1,7 +1,7 @@
 import { Dispatch, Dispatcher } from 'react/src/ReactCurrentDispatcher';
 import currentBatchConfig from 'react/src/ReactCurrentBatchConfig';
 import internals from 'shared/ReactSharedInternals';
-import { Action } from 'shared/ReactTypes';
+import { Action, ReactContext } from 'shared/ReactTypes';
 import { FiberNode } from './ReactFiber';
 import { Lane, NoLane, requestUpdateLane } from './ReactFiberLanes';
 import { Flags, PassiveEffect } from './ReactFiberFlags';
@@ -82,6 +82,7 @@ const HooksDispatcherOnMount: Dispatcher = {
   useEffect: mountEffect,
   useTransition: mountTransition,
   useRef: mountRef,
+  useContext: readContext,
 };
 
 const HooksDispatcherOnUpdate: Dispatcher = {
@@ -89,7 +90,17 @@ const HooksDispatcherOnUpdate: Dispatcher = {
   useEffect: updateEffect,
   useTransition: updateTransition,
   useRef: updateRef,
+  useContext: readContext,
 };
+
+function readContext<T>(context: ReactContext<T>) {
+  const consumer = currentlyRenderingFiber;
+  if (consumer === null) {
+    throw new Error('context需要有consumer');
+  }
+  const value = context._currentValue;
+  return value;
+}
 
 function mountRef<T>(initialValue: T): { current: T } {
   const hook = mountWorkInProgressHook();

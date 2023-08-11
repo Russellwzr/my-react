@@ -1,3 +1,4 @@
+import { ReactContext } from 'shared/ReactTypes';
 import currentDispatcher, { Dispatcher, resolveDispatcher } from './src/ReactCurrentDispatcher';
 import currentBatchConfig from './src/ReactCurrentBatchConfig';
 import { jsx as jsxFn, isValidElement as isValidElementFn } from './src/ReactJSXElement';
@@ -23,6 +24,11 @@ export const useRef: Dispatcher['useRef'] = (initialValue) => {
   return dispatcher.useRef(initialValue);
 };
 
+export const useContext: Dispatcher['useContext'] = <T>(context: ReactContext<T>) => {
+  const dispatcher = resolveDispatcher() as Dispatcher;
+  return dispatcher.useContext(context);
+};
+
 // 内部数据共享层
 export const __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = {
   currentDispatcher,
@@ -34,3 +40,4 @@ export const createElement = createElementFn;
 export const jsx = jsxFn;
 export const isValidElement = isValidElementFn;
 export { REACT_FRAGMENT_TYPE as Fragment } from 'shared/ReactSymbols';
+export { createContext } from './src/ReactContext';
